@@ -1,0 +1,6 @@
+# Only the reviewed support files belong in this repository.
+*
+!.gitignore
+!README.md
+!Test-ReclaimerDisplay.ps1
+!Test-ReclaimerDisplay.Tests.ps1
