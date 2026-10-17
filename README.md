@@ -99,3 +99,81 @@ native radar, ammo or shield edge-anchor control was found. The source is not
 published. An upstream renderer change or a separately developed, verified
 extension would be needed to expose such a control in the existing settings UI.
 No such change has been implemented or verified here.
+
+## HUD mod assessment
+
+Research date: 2026-10-17. Target client: 0.9.18. This is a design assessment,
+not an installable HUD mod or a tested binary patch.
+
+### Recommended route
+
+Implement an optional **Screen edges** layout in the client's native HUD
+renderer. Expose **HUD layout: Original / Screen edges** under
+**Settings > Game options > HUD**. These are proposed controls; the released
+client does not currently expose them. Use each player's actual viewport and
+keep the existing widget size and proportions.
+
+| Widget | Requested anchor |
+| --- | --- |
+| Radar / motion sensor | Bottom left |
+| Grenades and equipment | Top left |
+| Shield / health bar | Top center |
+| Weapon icons and ammunition | Top right |
+| Aiming reticle | Existing aim point, unchanged |
+| World-space markers and objectives | Existing projection, unchanged |
+
+Retain a small safe inset so elements are not clipped at the display edge.
+Move the anchor positions, not the entire HUD image. A single vertical stretch
+would distort the widgets and could move the reticle away from the aim point.
+
+The observed portrait HUD occupies a central landscape-shaped band despite
+correct scene and back-buffer dimensions. That suggests a viewport/layout
+transform issue. The precise transform has not yet been proven from source or
+an instrumented runtime test; a guessed binary offset is not a verified fix.
+
+### Why the existing Mods page is not a global HUD plug-in loader
+
+The [official mod documentation](https://projectreclaimer.dev/play#mods) states
+that mods contain map files and that Reclaimer does not execute program code
+from them. The page supports map/campaign packages and character content. It
+does not document a general client plug-in interface or a way for a mod to add
+native settings controls.
+
+| Route | Scope and limitation | Decision |
+| --- | --- | --- |
+| Native client change | Can apply the layout across maps and expose a real settings control. Source access or upstream implementation is needed. | Preferred release path |
+| Version-specific local patch | Could prototype a proven renderer change using the owner's installed client. Update compatibility and online acceptance would need testing. | Experimental fallback only |
+| Map/tag mod | May alter HUD tags within packaged maps. It is not a verified global override for stock maps or other authors' mods. | Limited proof of concept |
+| Megalo game-mode script | Provides its own text and bar widgets, not relocation of the native radar, shields or weapon HUD. Its script canvas is centered and aspect-preserving. | Does not meet this request |
+
+The [Megalo HUD reference](https://projectreclaimer.dev/megalo#hud-widgets)
+defines a centered 1280 x 720 script canvas and limits widget positions to that
+canvas. Its per-widget anchors refer to those scripted widgets. A `bottom_left`
+anchor there must not be presented as a way to move the native motion sensor to
+the physical corner of a portrait monitor.
+
+[Microsoft's Halo 3 Editing Kit guide](https://learn.microsoft.com/en-us/halo-master-chief-collection/h3/quickstart/quickstartoverview)
+documents tag editing and building maps. That supports investigating a separate
+map-based prototype, but does not establish that Reclaimer accepts a global HUD
+tag override. H3EK was not found in the checked local Steam common directories.
+
+### Prototype and release gates
+
+1. Prove which native transform controls the edge widgets. Separate that path
+   from the reticle, visor, world markers and scripted HUD.
+2. Test an isolated, reversible prototype in a local game. Do not replace the
+   normal launcher or modify the active game while investigating.
+3. Verify the radar at bottom left and the other requested groups at the top
+   on 1050 x 1680 and 1080 x 1920. Check that 1920 x 1080 stays correct.
+4. Verify on foot, while aiming, in vehicles, after respawn and after changing
+   maps. For split screen, anchor to each player's viewport.
+5. Verify the settings control, saving, relaunch and complete rollback. Treat
+   online compatibility as unverified until tested without changing security
+   or anti-cheat behavior.
+6. Publish only authored code, tests and installation instructions. Exclude
+   game binaries, extracted sections, copyrighted map contents, private profiles,
+   machine paths and raw logs. A local patch must check the exact client version
+   and original bytes and refuse unknown versions.
+
+The public repository remains a recovery guide and read-only diagnostic tool.
+The native HUD change, an in-game toggle and a loadable mod remain unimplemented.
