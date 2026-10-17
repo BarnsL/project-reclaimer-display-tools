@@ -87,7 +87,7 @@ not a permanent fix for monitor-change handling.
 
 ## Publication boundary
 
-Only this README, the checker, its synthetic tests and `.gitignore` are tracked.
+Only this README, the checker, the map packager, their synthetic tests and `.gitignore` are tracked.
 The ignore file rejects other files by default. There are no copied game assets,
 binaries, extracted sections, profiles, credentials, personal paths or raw logs.
 Commit identity uses the public account name and the placeholder `redacted`.
@@ -175,5 +175,89 @@ tag override. H3EK was not found in the checked local Steam common directories.
    machine paths and raw logs. A local patch must check the exact client version
    and original bytes and refuse unknown versions.
 
-The public repository remains a recovery guide and read-only diagnostic tool.
-The native HUD change, an in-game toggle and a loadable mod remain unimplemented.
+The public repository contains a recovery guide, read-only diagnostics and a
+map-package helper. The native HUD change, an in-game toggle and a playable HUD
+mod remain unimplemented.
+
+## Build the map-based HUD prototype
+
+Start with one independently named test map. The first runtime test must prove
+that Reclaimer honors the edited HUD tags. It might apply its own HUD transform
+after loading those tags. Do not build a full campaign pack before that test.
+
+1. Install [Halo 3 Mod Tools - MCC](https://store.steampowered.com/app/1695791/)
+   from the Steam Library's Tools category. Ownership of Halo 3 in MCC is required.
+   Extract the supplied tags with the kit's extraction workflow. Keep its stock
+   source tags intact and work from copies. Allow space for extracted tags and
+   compiled maps as well as the initial download.
+2. Copy a small stock scenario into a separate namespace, for example
+   `levels/portrait_hud/portrait_guardian`. Inspect the scenario's actual HUD tag
+   references in Guerilla. Make separate HUD tag copies for the prototype.
+   Adjust the radar's lower-left placement and the upper status groups without
+   changing reticle or world-marker behavior. Exact tag edits are not yet known;
+   they must be established against the installed kit and tested in Reclaimer.
+
+   The community [Halo 3 MCC CHDT schema](https://github.com/XboxChaos/Assembly/blob/dev/src/Assembly/Plugins/Halo3MCC/chdt.xml)
+   identifies placement anchors, origin offsets and widget scale. Its grenade
+   anchors also select grenade-specific inputs, so do not replace all of them
+   with a generic top-left anchor. Preserve inherited child placement and adjust
+   the appropriate parent or offset. The [CHGD schema](https://github.com/XboxChaos/Assembly/blob/dev/src/Assembly/Plugins/Halo3MCC/chgd.xml)
+   identifies virtual dimensions, safe-frame values and sensor origin. Inspect
+   those first to distinguish the central viewport band from per-widget offsets.
+3. Compile that scenario with the official tool. From the mod tools directory:
+
+   ```powershell
+   .\tool_fast.exe build-cache-file levels\portrait_hud\portrait_guardian x64
+   ```
+
+4. Package the resulting map with the helper in this repository. Replace
+   `$kit` with the installed mod tools directory in your local terminal:
+
+   ```powershell
+   .\New-ReclaimerModPackage.ps1 `
+     -MapFile (Join-Path $kit 'maps/portrait_guardian.map') `
+     -Scenario 'levels/portrait_hud/portrait_guardian' `
+     -OutputDirectory '.local/Portrait-HUD-Test'
+   ```
+
+   The helper requires an existing `.map` with the observed MCC cache header
+   (`daeh`, version 13). It generates new package/map IDs, uses relative content
+   paths, writes UTF-8 JSON without a BOM, and refuses an existing output folder.
+   It does not edit tags, compile maps, inspect dependencies, or verify gameplay.
+   A failed copy can leave a partial output; it never replaces an existing mod.
+
+   ```text
+   Portrait-HUD-Test/
+     ModInfo.json
+     multiplayer/portrait_guardian.json
+     maps/portrait_guardian.map
+   ```
+
+5. Once built, copy the package folder to the current user's Documents /
+   My Games / Project Reclaimer / Mods folder. In Reclaimer choose Refresh in
+   Host Game, select the separately named test map, and start a local game.
+   Confirm it appears in Settings > Mods. Test the actual HUD placement, reticle,
+   vehicles and respawns at the portrait resolution. Appearance in the Mods list
+   is not proof that the HUD changed.
+6. If that test passes, expand to the desired maps. A packaged-map HUD mod is
+   limited to its maps; it is not a verified override for stock campaigns,
+   arbitrary servers or other authors' mods. An in-game HUD-layout toggle still
+   needs a separate native implementation. Workshop upload is not needed for
+   local Reclaimer testing and has not been performed.
+
+The map package format follows [Microsoft's Excession folder documentation](https://learn.microsoft.com/en-us/halo-master-chief-collection/excession/setup/folderstructure)
+and the structure of an installed Reclaimer mod. The builder command follows
+[Microsoft's cache-building guide](https://learn.microsoft.com/en-us/halo-master-chief-collection/h3/quickstart/process/step9).
+Package metadata is source material we can publish. The kit, extracted game
+tags and compiled game maps stay outside Git. The helper's fixtures contain only
+synthetic headers and are not playable maps.
+
+Run its tests with either Windows PowerShell 5.1 or PowerShell 7:
+
+```powershell
+.\New-ReclaimerModPackage.Tests.ps1
+```
+
+Current build gate: Halo 3 Mod Tools and its extracted tags are required before
+the HUD edits and first playable prototype can be produced. No test map has yet
+been built or installed.

@@ -4,3 +4,5 @@
 !README.md
 !Test-ReclaimerDisplay.ps1
 !Test-ReclaimerDisplay.Tests.ps1
+!New-ReclaimerModPackage.ps1
+!New-ReclaimerModPackage.Tests.ps1
