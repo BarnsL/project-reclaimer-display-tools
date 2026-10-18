@@ -10,10 +10,16 @@ Reapplying the native rendering resolution corrected a stretched game picture
 without restarting the game. The existing Graphics page displayed the correct
 dimensions, and new log entries confirmed both the scene and back buffer sizes.
 
-**HUD corner placement remains unresolved.** The native health bar, ammo and
-radar can remain inside a central area on a portrait display. This repository
-does not reposition those widgets or add an in-game HUD setting. The reticle
-should remain at the aiming point. No game files or process memory are patched.
+**HUD corner placement remains unverified in gameplay.** A separate Guardian
+test map was compiled and installed locally. Its three fullscreen HUD layouts
+contain a 1280 x 2048 virtual canvas and a sensor origin of 55,1989 for the
+1050 x 1680 display. Those values were read back from the installed map.
+The supplied campaign screenshot still shows the original central HUD.
+Installing this package does not change stock campaigns or other maps.
+
+The preparation script edits HUD tags only in a marked, isolated editing-kit
+copy. It does not patch the client executable, process memory, stock game maps,
+or the Steam editing kit. There is no new in-game HUD setting.
 
 Project Reclaimer's [official repository](https://github.com/ProjectReclaimer/project-reclaimer-releases)
 publishes releases only. This project is not affiliated with its developers.
@@ -87,7 +93,8 @@ not a permanent fix for monitor-change handling.
 
 ## Publication boundary
 
-Only this README, the checker, the map packager, their synthetic tests and `.gitignore` are tracked.
+Only this README, authored preparation/checking/packaging scripts, their
+synthetic tests and `.gitignore` are tracked.
 The ignore file rejects other files by default. There are no copied game assets,
 binaries, extracted sections, profiles, credentials, personal paths or raw logs.
 Commit identity uses the public account name and the placeholder `redacted`.
@@ -102,8 +109,9 @@ No such change has been implemented or verified here.
 
 ## HUD mod assessment
 
-Research date: 2026-10-17. Target client: 0.9.18. This is a design assessment,
-not an installable HUD mod or a tested binary patch.
+Research date: 2026-10-17. Target client: 0.9.18. The native-client section is
+a design assessment. The map prototype described below has been compiled and
+installed locally, but its visible HUD result is still pending.
 
 ### Recommended route
 
@@ -155,7 +163,7 @@ the physical corner of a portrait monitor.
 [Microsoft's Halo 3 Editing Kit guide](https://learn.microsoft.com/en-us/halo-master-chief-collection/h3/quickstart/quickstartoverview)
 documents tag editing and building maps. That supports investigating a separate
 map-based prototype, but does not establish that Reclaimer accepts a global HUD
-tag override. H3EK was not found in the checked local Steam common directories.
+tag override. H3EK is now installed and was used to build the local prototype.
 
 ### Prototype and release gates
 
@@ -175,9 +183,10 @@ tag override. H3EK was not found in the checked local Steam common directories.
    machine paths and raw logs. A local patch must check the exact client version
    and original bytes and refuse unknown versions.
 
-The public repository contains a recovery guide, read-only diagnostics and a
-map-package helper. The native HUD change, an in-game toggle and a playable HUD
-mod remain unimplemented.
+The public repository contains the recovery guide, read-only display diagnostics,
+isolated HUD-tag preparation, XML verification and a map-package helper.
+The native HUD change and an in-game toggle remain unimplemented. The compiled
+map is local only; neither it nor extracted game tags are distributed here.
 
 ## Build the map-based HUD prototype
 
@@ -190,12 +199,25 @@ after loading those tags. Do not build a full campaign pack before that test.
    Extract the supplied tags with the kit's extraction workflow. Keep its stock
    source tags intact and work from copies. Allow space for extracted tags and
    compiled maps as well as the initial download.
-2. Copy a small stock scenario into a separate namespace, for example
-   `levels/portrait_hud/portrait_guardian`. Inspect the scenario's actual HUD tag
-   references in Guerilla. Make separate HUD tag copies for the prototype.
-   Adjust the radar's lower-left placement and the upper status groups without
-   changing reticle or world-marker behavior. Exact tag edits are not yet known;
-   they must be established against the installed kit and tested in Reclaimer.
+2. Make a complete, independent copy of the extracted kit outside Steam libraries.
+   Do not link its tag directory to the original. In that copy, create an empty
+   `.portrait-hud-workspace` marker. Set `$kit` to that copy's directory, then run:
+
+   ```powershell
+   .\Prepare-PortraitHud.ps1 -KitPath $kit -Width 1050 -Height 1680
+   ```
+
+   The script checks the reviewed stock globals tag hash, refuses linked paths
+   and an existing prototype scenario, and uses the kit's own tag commands.
+   It changes only virtual height and sensor Y in each of the three fullscreen
+   layouts. It keeps an original-tag backup under `.portrait-hud` and copies
+   Guardian to `levels/portrait_hud/portrait_guardian`.
+
+   A full XML comparison checks that no other exported fields changed. A failure
+   retains its private logs and candidate for inspection. Never remove guards
+   to accept another kit version. Restore the isolated copy or use a fresh copy
+   after reviewing a changed baseline. Do not reuse this modified kit for normal
+   landscape map builds.
 
    The community [Halo 3 MCC CHDT schema](https://github.com/XboxChaos/Assembly/blob/dev/src/Assembly/Plugins/Halo3MCC/chdt.xml)
    identifies placement anchors, origin offsets and widget scale. Its grenade
@@ -258,6 +280,27 @@ Run its tests with either Windows PowerShell 5.1 or PowerShell 7:
 .\New-ReclaimerModPackage.Tests.ps1
 ```
 
-Current build gate: Halo 3 Mod Tools and its extracted tags are required before
-the HUD edits and first playable prototype can be produced. No test map has yet
-been built or installed.
+## Current verification boundary
+
+The installed local package is named **Portrait HUD - Guardian**. Its compiled
+scenario is `levels/portrait_hud/portrait_guardian`. Direct inspection found
+three portrait layout records and no matching stock layout records in its tag
+section. This verifies packaged data, not the renderer or gameplay.
+
+The next required test is **Host Game > Portrait HUD - Guardian** in a local
+session. A screenshot of a stock campaign does not test this package. Confirm
+1050 x 1680 in the live rendering settings, then check radar bottom-left,
+grenades top-left, shields top-center and ammunition top-right. Check that the
+reticle and world markers still align with the scene. Do not publish a claim of
+a working HUD mod until that test passes.
+
+Run the additional checks:
+
+```powershell
+.\Prepare-PortraitHud.Tests.ps1
+.\Test-PortraitHudTagXml.Tests.ps1
+```
+
+The first creates and removes an owned temporary junction to test isolation.
+Use a shell that permits that test. The second uses synthetic XML only.
+Keep the kit, backups, exports and compiled map outside the public repository.

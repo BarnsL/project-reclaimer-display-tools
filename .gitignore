@@ -6,3 +6,7 @@
 !Test-ReclaimerDisplay.Tests.ps1
 !New-ReclaimerModPackage.ps1
 !New-ReclaimerModPackage.Tests.ps1
+!Prepare-PortraitHud.ps1
+!Prepare-PortraitHud.Tests.ps1
+!Test-PortraitHudTagXml.ps1
+!Test-PortraitHudTagXml.Tests.ps1
