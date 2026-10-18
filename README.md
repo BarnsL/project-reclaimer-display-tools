@@ -17,6 +17,12 @@ contain a 1280 x 2048 virtual canvas and a sensor origin of 55,1989 for the
 The supplied campaign screenshot still shows the original central HUD.
 Installing this package does not change stock campaigns or other maps.
 
+A separate, version-checked portrait client prototype is now available through
+`portrait_client.py`. It targets the client's built-in HUD adjustment and the
+fullscreen Default startup resolution. A fresh startup verified 1050 x 1680.
+The first HUD attempt failed visibly; the corrected safe-frame candidate has
+not yet been tested in gameplay. See **Build the experimental portrait client**.
+
 The preparation script edits HUD tags only in a marked, isolated editing-kit
 copy. It does not patch the client executable, process memory, stock game maps,
 or the Steam editing kit. There is no new in-game HUD setting.
@@ -185,8 +191,69 @@ tag override. H3EK is now installed and was used to build the local prototype.
 
 The public repository contains the recovery guide, read-only display diagnostics,
 isolated HUD-tag preparation, XML verification and a map-package helper.
-The native HUD change and an in-game toggle remain unimplemented. The compiled
-map is local only; neither it nor extracted game tags are distributed here.
+An experimental native portrait client builder is also included. It does not
+add an in-game toggle. Compiled maps and generated clients stay local; neither
+they nor extracted game tags are distributed here.
+
+## Build the experimental portrait client
+
+This is an experimental local client modification, not a map package. It can
+apply to stock layouts across maps because it changes Reclaimer's existing
+HUD-adjustment code. HUD placement, online compatibility, split screen and
+landscape use remain unverified. Use a local test before relying on it.
+
+The builder accepts only the official Windows x64 0.9.18 client with SHA-256:
+
+```text
+a8d3a37ad27e31abc09d009a94210470976ecefb34908a9fb8e1a245f4924910
+```
+
+It writes a new executable and refuses an existing destination, linked paths,
+unknown versions or changed original instructions. It does not replace the
+normal client, edit settings, change stock maps or attach to a running process.
+Keep the generated client outside Git. Python 3.11 or newer is required.
+
+```powershell
+python .\test_portrait_client.py
+python .\portrait_client.py --source "$originalClient" --output "$newClient" --width 1050 --height 1680
+```
+
+Set the two local paths yourself. The output directory must already exist.
+Launch the new copy for testing. Returning to the normal executable restores
+normal client behavior; no Steam files need restoration.
+
+Changes in the prototype:
+
+- Fullscreen **Default** uses 1050 x 1680 at startup. The original startup path
+  selects the current monitor before a later move to the portrait display.
+- Explicit in-game presets, such as 1920 x 1080, keep their original startup
+  branches. The builder does not rewrite their saved settings. Windowed Default
+  also keeps the original startup behavior.
+- The three stock fullscreen HUD layouts retain their 1280 x 720 virtual canvas,
+  sensor origin 55,661, radii and widget scale. The vertical safe frame expands
+  from 0.97 to 2.759111 for the requested portrait aspect. Unknown canvas, sensor
+  or safe-frame layouts are skipped.
+- The runtime change uses the client's existing layout-write path. The source
+  executable remains byte-for-byte unchanged. For the default dimensions, the
+  generated copy differs in 191 bytes within nine reviewed ranges.
+
+The native startup selector has one direct caller in the reviewed image. The
+builder changes its Default branch and leaves all fixed-size branches intact.
+Disassembly checks confirm the generated jump targets, payload addresses,
+32-byte layout write and output-length check. These are static checks; they
+do not establish correct rendered positions or working gameplay.
+
+The first native test changed virtual height to 2048. Actual campaign gameplay
+showed flattened widgets in the original central band. That method was rejected.
+Engine inspection then identified the separate safe-frame placement calculation;
+the current candidate changes that field while retaining normal canvas dimensions.
+Its live HUD test is pending. The fresh startup log did verify 1050 x 1680 for
+both the scene and back buffer before any in-game resolution change.
+
+Before calling this fixed, verify a fresh portrait startup, radar bottom-left,
+status groups across the top, reticle/world-marker alignment, and a saved
+explicit resolution surviving a restart. A client update requires a new source
+review; the builder refuses another release rather than guessing its offsets.
 
 ## Build the map-based HUD prototype
 

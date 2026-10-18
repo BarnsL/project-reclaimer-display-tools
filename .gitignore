@@ -10,3 +10,5 @@
 !Prepare-PortraitHud.Tests.ps1
 !Test-PortraitHudTagXml.ps1
 !Test-PortraitHudTagXml.Tests.ps1
+!portrait_client.py
+!test_portrait_client.py
