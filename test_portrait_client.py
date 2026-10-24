@@ -13,13 +13,49 @@ spec.loader.exec_module(mod)
 
 
 class PortraitClientTests(unittest.TestCase):
-    def test_layout_changes_safe_frame_without_squashing_widgets(self):
+    def test_portrait_viewport_preserves_widget_proportions(self):
         plan = mod.make_edits(1050, 1680)
-        payload = next(after for _, _, after in plan if len(after) == mod.CAVE_SIZE)
-        self.assertEqual(struct.unpack_from('<IIffffff', payload, mod.PAYLOAD_DELTA),
-                         (1280, 720, 55.0, 661.0, 58.0, 4.0,
-                          struct.unpack('<f', struct.pack('<f', .97))[0],
-                          struct.unpack('<f', struct.pack('<f', .97 * 1280 * 1680 / (720 * 1050)))[0]))
+        cave = next(after for _, _, after in plan if len(after) == mod.CAVE_SIZE)
+        code = cave[84:168]
+        for width, height in [(1050, 1680), (1080, 1920), (1080, 1080)]:
+            memory = {0xAD314C: 720.0, 0xAD3154: 720.0, 0xAD3164: 661.0}
+            regs = [0.0, 0.0, (width / height) / (16 / 9)]
+            pc = 0
+            # Execute the emitted scalar transform against independent viewport cases.
+            while code[pc] != 0xE9:
+                op = code[pc:pc + 4]
+                if op in (bytes.fromhex('f30f100d'), bytes.fromhex('f30f1105'), bytes.fromhex('f30f5805')):
+                    address = 0x2ED53F + pc + 8 + struct.unpack_from('<i', code, pc + 4)[0]
+                    if op == bytes.fromhex('f30f100d'):
+                        regs[1] = memory[address]
+                    elif op == bytes.fromhex('f30f1105'):
+                        memory[address] = regs[0]
+                    else:
+                        regs[0] += memory[address]
+                    pc += 8
+                elif code[pc:pc + 3] == bytes.fromhex('0f28c1'):
+                    regs[0] = regs[1]
+                    pc += 3
+                elif op == bytes.fromhex('f30f5ec2'):
+                    regs[0] /= regs[2]
+                    pc += 4
+                elif op == bytes.fromhex('f30f5cc1'):
+                    regs[0] -= regs[1]
+                    pc += 4
+                else:
+                    self.fail('Unexpected instruction in the HUD transform')
+            self.assertEqual(0x2ED53F + pc + 5 + struct.unpack_from('<i', code, pc + 1)[0], 0x2ED592)
+            self.assertAlmostEqual(memory[0xAD314C], 1280 * height / width)
+            self.assertAlmostEqual(memory[0xAD3154], memory[0xAD314C])
+            self.assertAlmostEqual(memory[0xAD3164], memory[0xAD314C] - 59)
+            self.assertAlmostEqual(height / memory[0xAD314C], width / 1280)
+        self.assertEqual(code[83], 0x41)  # Preserve the first byte of the next original instruction.
+
+    def test_added_code_has_unwind_metadata(self):
+        plan = mod.make_edits(1050, 1680)
+        entry = next(after for _, before, after in plan if len(before) == 12)
+        start, end, unwind = struct.unpack('<III', entry)
+        self.assertEqual((start, end, unwind), (mod.CAVE_RVA + 168, mod.CAVE_RVA + 250, 0x2472D64))
 
     def test_startup_changes_only_native_branch(self):
         plan = mod.make_edits(1050, 1680)
