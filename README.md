@@ -267,8 +267,10 @@ showed flattened widgets in the original central band. That method was rejected.
 The second attempt restored proportions but its safe-frame change did not move
 the HUD. Engine inspection then identified the explicit 16:9 crop and its
 virtual-coordinate normalization. The current candidate corrects that branch.
-Its live HUD test is pending. Fresh startup logs did verify 1050 x 1680 for
-both the scene and back buffer before any in-game resolution change.
+Its live HUD test is pending. A fresh start of candidate 3 on 2026-10-24 verified
+1050 x 1680 for both the scene and back buffer before any in-game resolution
+change. The candidate remained running and responsive. Startup acceptance does
+not establish the positions of the in-game HUD widgets.
 
 Before calling this fixed, verify a fresh portrait startup, radar bottom-left,
 status groups across the top, reticle/world-marker alignment, and a saved
